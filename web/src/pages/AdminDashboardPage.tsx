@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api";
+import {getCurrentUser} from "../auth";
 
 interface Stats {
   pending: number;
@@ -47,27 +48,7 @@ export default function AdminDashboardPage() {
   const [error, setError] =
     useState("");
 
-  const [user, setUser] =
-    useState<User | null>(null);
-
-  useEffect(() => {
-    const token =
-      localStorage.getItem("accessToken");
-
-    if (!token) return;
-
-    try {
-      const payload = JSON.parse(
-        atob(token.split(".")[1])
-      );
-
-      setUser({
-        role: payload.role,
-      });
-    } catch {
-      setUser(null);
-    }
-  }, []);
+    const user = getCurrentUser();
 
   useEffect(() => {
     async function loadDashboard() {

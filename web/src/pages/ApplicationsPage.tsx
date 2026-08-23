@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
+import { getCurrentUser } from "../auth";
 
 interface Application {
   id: number;
@@ -18,6 +19,7 @@ export default function ApplicationsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const user = getCurrentUser();
 
   useEffect(() => {
     async function loadApplications() {
@@ -60,13 +62,24 @@ export default function ApplicationsPage() {
 
   return (
     <main className="dashboard">
-      <header className="topbar">
+        <header className="topbar">
         <strong>NAHUELA</strong>
 
-        <button className="secondary-button" onClick={logout}>
-          Sign out
-        </button>
-      </header>
+        <nav>
+            {user?.role === "admin" && (
+            <Link to="/admin">
+                Admin
+            </Link>
+            )}
+
+            <button
+            className="secondary-button"
+            onClick={logout}
+            >
+            Sign out
+            </button>
+        </nav>
+        </header>
 
       <section className="content">
         <div className="page-header">
