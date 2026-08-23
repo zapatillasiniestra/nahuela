@@ -257,6 +257,14 @@ export default function ApplicationPage() {
 
           <div className="application-actions">
 
+            <div className="application-status">
+            <span>Status</span>
+
+            <strong className={`status status-${application.status}`}>
+                {application.status.replace("_", " ").toUpperCase()}
+            </strong>
+            </div>
+            
             <div className="decision-badge">
               {aiAssessment?.decision === "approved"
                 ? "APPROVED"
