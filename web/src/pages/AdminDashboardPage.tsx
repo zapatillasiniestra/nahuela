@@ -31,10 +31,6 @@ interface ApplicationsResponse {
   limit: number;
 }
 
-interface User {
-  role: string;
-}
-
 export default function AdminDashboardPage() {
   const [stats, setStats] =
     useState<Stats | null>(null);
