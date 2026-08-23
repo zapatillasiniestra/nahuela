@@ -17,26 +17,41 @@ export default function ApplicationsPage() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     async function loadApplications() {
-      try {
-        const data = await apiFetch(`/applications?page=${page}&limit=10`);
-        setApplications(data.data);
-        setTotalPages(data.totalPages);
-      } catch (error) {
+    try {
+        setLoading(true);
+
+        const params = new URLSearchParams({
+        page: String(page),
+        limit: "10",
+        });
+
+        if (statusFilter) {
+        params.set("status", statusFilter);
+        }
+
+        const result = await apiFetch(
+        `/applications?${params.toString()}`
+        );
+
+        setApplications(result.data);
+        setTotalPages(result.totalPages);
+    } catch (error) {
         setError(
-          error instanceof Error
+        error instanceof Error
             ? error.message
             : "Failed to load applications"
         );
-      } finally {
+    } finally {
         setLoading(false);
-      }
+    }
     }
 
     loadApplications();
-  }, [page]);
+  }, [page, statusFilter]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -70,6 +85,59 @@ export default function ApplicationsPage() {
         {loading && <p>Loading...</p>}
         {error && <div className="error">{error}</div>}
 
+        <div className="filters">
+        <button
+            className={!statusFilter ? "active" : ""}
+            onClick={() => {
+            setStatusFilter("");
+            setPage(1);
+            }}
+        >
+            All
+        </button>
+
+        <button
+            className={statusFilter === "pending" ? "active" : ""}
+            onClick={() => {
+            setStatusFilter("pending");
+            setPage(1);
+            }}
+        >
+            Pending
+        </button>
+
+        <button
+            className={
+            statusFilter === "under_review" ? "active" : ""
+            }
+            onClick={() => {
+            setStatusFilter("under_review");
+            setPage(1);
+            }}
+        >
+            Under review
+        </button>
+
+        <button
+            className={statusFilter === "approved" ? "active" : ""}
+            onClick={() => {
+            setStatusFilter("approved");
+            setPage(1);
+            }}
+        >
+            Approved
+        </button>
+
+        <button
+            className={statusFilter === "rejected" ? "active" : ""}
+            onClick={() => {
+            setStatusFilter("rejected");
+            setPage(1);
+            }}
+        >
+            Rejected
+        </button>
+        </div>
         {!loading && !error && (
           <div className="table">
             <div className="table-header">

@@ -474,3 +474,24 @@ a {
   background: #fee2e2;
   color: #991b1b;
 }
+
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.filters button {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+.filters button.active {
+  background: #111;
+  color: white;
+  border-color: #111;
+}
