@@ -3,6 +3,37 @@ import { Link, useParams } from "react-router-dom";
 import { apiFetch } from "../api";
 import DocumentVerificationForm from "../components/DocumentVerificationForm";
 
+interface ComplianceReport {
+  applicationId: number;
+  status: string;
+  identity: {
+    verified: boolean;
+    provider: string;
+    decision: string;
+  } | null;
+  document: {
+    type: string;
+    status: string;
+    provider: string;
+    fileName: string;
+  } | null;
+  compliance: {
+    decision: string;
+    provider: string;
+    reasons: string[];
+  } | null;
+  aiAssessment: {
+    decision: string;
+    riskLevel: string | null;
+    reasons: string[];
+    model: string;
+  } | null;
+  audit: {
+    valid: boolean;
+    events: number;
+  };
+}
+
 interface DecisionHistory {
   applicationId: number;
   identity: any[];
@@ -49,11 +80,17 @@ export default function ApplicationPage() {
   const [error, setError] =
     useState("");
 
-const [loadingOnboarding, setLoadingOnboarding] =
-  useState(false);
+    const [loadingOnboarding, setLoadingOnboarding] =
+    useState(false);
 
-const [onboardingDecision, setOnboardingDecision] =
-  useState<OnboardingDecision | null>(null);
+    const [onboardingDecision, setOnboardingDecision] =
+    useState<OnboardingDecision | null>(null);
+
+    const [report, setReport] =
+    useState<ComplianceReport | null>(null);
+
+    const [loadingReport, setLoadingReport] =
+    useState(false);
 
   useState(false);
     useEffect(() => {
@@ -100,6 +137,29 @@ const [onboardingDecision, setOnboardingDecision] =
         setLoadingOnboarding(false);
     }
     }
+
+    async function loadReport() {
+        if (!id) return;
+
+        setLoadingReport(true);
+        setError("");
+
+        try {
+            const result = await apiFetch(
+            `/applications/${id}/report`
+            );
+
+            setReport(result);
+        } catch (error) {
+            setError(
+            error instanceof Error
+                ? error.message
+                : "Failed to load compliance report"
+            );
+        } finally {
+            setLoadingReport(false);
+        }
+        }
 
   if (loading) {
     return (
@@ -175,6 +235,16 @@ const [onboardingDecision, setOnboardingDecision] =
             {loadingOnboarding
                 ? "Loading..."
                 : "View onboarding decision"}
+        </button>
+
+        <button
+            className="primary-button"
+            onClick={loadReport}
+            disabled={loadingReport}
+            >
+            {loadingReport
+                ? "Loading..."
+                : "View compliance report"}
         </button>
 
           </div>
@@ -379,6 +449,96 @@ const [onboardingDecision, setOnboardingDecision] =
           />
 
         )}
+
+        {report && (
+            <section className="panel">
+                <div className="panel-heading">
+                <div>
+                    <h2>Compliance report</h2>
+                    <p>
+                    Consolidated onboarding assessment.
+                    </p>
+                </div>
+
+                <span className="decision-badge">
+                    {report.status.toUpperCase()}
+                </span>
+                </div>
+
+                <div className="decision-grid">
+
+                <div>
+                    <span>Identity</span>
+                    <strong>
+                    {report.identity?.verified
+                        ? "✓ Verified"
+                        : "✕ Not verified"}
+                    </strong>
+                    <small>
+                    Provider: {report.identity?.provider}
+                    </small>
+                </div>
+
+                <div>
+                    <span>Document</span>
+                    <strong>
+                    {report.document?.status ?? "Not submitted"}
+                    </strong>
+                    <small>
+                    {report.document?.fileName}
+                    </small>
+                </div>
+
+                <div>
+                    <span>Compliance</span>
+                    <strong>
+                    {report.compliance?.decision ?? "Pending"}
+                    </strong>
+                    <small>
+                    Provider: {report.compliance?.provider}
+                    </small>
+                </div>
+
+                <div>
+                    <span>AI Assessment</span>
+                    <strong>
+                    {report.aiAssessment?.decision ?? "Pending"}
+                    </strong>
+                    <small>
+                    Risk: {report.aiAssessment?.riskLevel ?? "N/A"}
+                    </small>
+                </div>
+
+                <div>
+                    <span>Audit</span>
+                    <strong>
+                    {report.audit.valid
+                        ? "✓ Valid"
+                        : "✕ Invalid"}
+                    </strong>
+                    <small>
+                    {report.audit.events} events
+                    </small>
+                </div>
+
+                </div>
+
+                {report.aiAssessment?.reasons?.length ? (
+                <div className="report-reasons">
+                    <h3>AI assessment reasons</h3>
+
+                    <ul>
+                    {report.aiAssessment.reasons.map(
+                        (reason, index) => (
+                        <li key={index}>{reason}</li>
+                        )
+                    )}
+                    </ul>
+                </div>
+                ) : null}
+
+            </section>
+            )}
 
         <section className="panel">
 
