@@ -51,6 +51,7 @@ Verification
 * Search, filtering, sorting, and pagination
 * Health and database connectivity checks
 * Automated unit and integration tests
+* Frontend application for display
 * GitHub Actions CI
   
 ---
@@ -59,6 +60,7 @@ Verification
 
 * TypeScript
 * NodeJS
+* React
 * Express
 * PostgreSQL
 * Zod
