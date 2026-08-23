@@ -152,60 +152,55 @@ async function getDecisionHistory(
   }
 }
 
-
 async function getOnboarding(
   applicationId: number,
   userId: number,
   role: "user" | "admin"
 ) {
-  const history =
-    await getDecisionHistory(
+  const report =
+    await getComplianceReport(
       applicationId,
       userId,
       role
     );
 
-  const identity =
-    history.identity.at(-1) ?? null;
-
-  const compliance =
-    history.compliance.at(-1) ?? null;
-
-  const aiAssessment =
-    history.aiAssessments.at(-1) ?? null;
-
   return {
     applicationId,
+    status: report.status,
 
-    status:
-      aiAssessment?.decision ?? "pending",
+    identity: report.identity
+      ? {
+          verified: report.identity.verified,
+          provider: report.identity.provider,
+        }
+      : {
+          verified: false,
+          provider: null,
+        },
 
-    identity: {
-      verified:
-        identity?.verified ?? false,
-      provider:
-        identity?.provider ?? null,
-    },
+    compliance: report.compliance
+      ? {
+          decision: report.compliance.decision,
+          provider: report.compliance.provider,
+        }
+      : {
+          decision: null,
+          provider: null,
+        },
 
-    compliance: {
-      decision:
-        compliance?.decision ?? null,
-      provider:
-        compliance?.provider ?? null,
-    },
+    aiAssessment: report.aiAssessment
+      ? {
+          decision: report.aiAssessment.decision,
+          riskLevel: report.aiAssessment.riskLevel,
+        }
+      : {
+          decision: null,
+          riskLevel: null,
+        },
 
-    aiAssessment: {
-      decision:
-        aiAssessment?.decision ?? null,
-      riskLevel:
-        aiAssessment?.riskLevel ?? null,
-    },
-
-    audit:
-      history.auditVerification,
+    audit: report.audit,
   };
 }
-
 
 async function getComplianceReport(
   applicationId: number,
@@ -781,6 +776,24 @@ async function createApplication(
       assessment
     );
 
+    if (
+      assessment.decision === "approved"
+    ) {
+      await repository.updateStatus(
+        client,
+        application.id,
+        "approved"
+      );
+    } else if (
+      assessment.decision === "rejected"
+    ) {
+      await repository.updateStatus(
+        client,
+        application.id,
+        "rejected"
+      );
+    }
+
     await client.query("COMMIT");
 
     return application;
@@ -791,7 +804,6 @@ async function createApplication(
     client.release();
   }
 }
-
 
 async function updateStatus(
   applicationId: number,
