@@ -429,10 +429,24 @@ async function createApplication(
   full_name: string,
   email: string
 ) {
+  const existing =
+    await repository.findActiveByUserAndEmail(
+      userId,
+      email
+    );
+
+  if (existing) {
+    throw new AppError(
+      "An active application already exists for this email",
+      409
+    );
+  }
+
   const verification = await verifyIdentity({
     full_name,
     email,
   });
+
 
   if (!verification.verified) {
     throw new AppError(

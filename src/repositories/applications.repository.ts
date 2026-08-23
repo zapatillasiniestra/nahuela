@@ -2,6 +2,25 @@ import pool from "../db/db";
 import type { PoolClient } from "pg";
 import type { Application, ApplicationStatus, SortOrder, CreateApplicationData } from "../types/application";
 
+async function findActiveByUserAndEmail(
+  userId: number,
+  email: string
+) {
+  const result = await pool.query(
+    `
+    SELECT id
+    FROM applications
+    WHERE user_id = $1
+      AND LOWER(email) = LOWER($2)
+      AND status IN ('pending', 'under_review')
+    LIMIT 1
+    `,
+    [userId, email]
+  );
+
+  return result.rows[0] ?? null;
+}
+
 async function findById(
     id: number
   ) {
@@ -195,6 +214,7 @@ async function updateStatus(
 }
 
 export default {
+  findActiveByUserAndEmail,
   findById,
   findByIdTx,
   findAll,
