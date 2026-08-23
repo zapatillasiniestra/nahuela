@@ -430,6 +430,34 @@ async function getOnboarding(
   }
 }
 
+async function getComplianceReport(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        error: "Unauthorized",
+      });
+      return;
+    }
+
+    const applicationId = Number(req.params.id);
+
+    const result =
+      await applicationsService.getComplianceReport(
+        applicationId,
+        req.user.userId,
+        req.user.role
+      );
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getApplications,
   getAllApplications,
@@ -444,4 +472,5 @@ export default {
   verifyAudit,
   getDecisionHistory,
   getOnboarding,
+  getComplianceReport,
 };

@@ -9,7 +9,7 @@ describe("createApplication compliance and audit flow", () => {
       await applicationsService.createApplication(
         4,
         "Compliance Test User",
-        "compliance-test@example.com"
+        `test-${Date.now()}@example.com`
       );
 
     const result = await pool.query(

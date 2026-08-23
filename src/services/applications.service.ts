@@ -25,6 +25,124 @@ import identityVerificationsRepository
   from "../repositories/identity-verifications.repository";
 import documentsRepository from "../repositories/documents.repository";
 
+async function getComplianceReport(
+  applicationId: number,
+  userId: number,
+  role: "user" | "admin"
+) {
+  await authorizeApplicationAccess(
+    applicationId,
+    userId,
+    role
+  );
+
+  const client = await pool.connect();
+
+  try {
+    const [
+      identity,
+      documents,
+      compliance,
+      aiAssessments,
+      auditEvents,
+      auditVerification,
+    ] = await Promise.all([
+      identityVerificationsRepository.findByApplicationId(
+        client,
+        applicationId
+      ),
+
+      documentsRepository.findByApplicationId(
+        client,
+        applicationId
+      ),
+
+      complianceRepository.findByApplicationId(
+        client,
+        applicationId
+      ),
+
+      aiAssessmentRepository.findByApplicationId(
+        client,
+        applicationId
+      ),
+
+      auditService.getAuditEvents(
+        client,
+        applicationId
+      ),
+
+      auditService.verifyAuditChain(
+        client,
+        applicationId
+      ),
+    ]);
+
+    const latestIdentity = identity.at(-1) ?? null;
+    const latestDocument = documents.at(-1) ?? null;
+    const latestCompliance = compliance.at(-1) ?? null;
+    const latestAiAssessment =
+      aiAssessments.at(-1) ?? null;
+
+    const approved =
+      latestIdentity?.verified === true &&
+      latestDocument?.status === "verified" &&
+      latestCompliance?.decision === "clear" &&
+      latestAiAssessment?.decision === "approved" &&
+      auditVerification.valid === true;
+
+    return {
+      applicationId,
+
+      status: approved
+        ? "approved"
+        : "pending",
+
+      identity: latestIdentity
+        ? {
+            verified: latestIdentity.verified,
+            provider: latestIdentity.provider,
+            decision: latestIdentity.decision,
+          }
+        : null,
+
+      document: latestDocument
+        ? {
+            type: latestDocument.documentType,
+            status: latestDocument.status,
+            provider: latestDocument.provider,
+            fileName: latestDocument.fileName,
+          }
+        : null,
+
+      compliance: latestCompliance
+        ? {
+            decision: latestCompliance.decision,
+            provider: latestCompliance.provider,
+            reasons: latestCompliance.reasons,
+          }
+        : null,
+
+      aiAssessment: latestAiAssessment
+        ? {
+            decision: latestAiAssessment.decision,
+            riskLevel: latestAiAssessment.riskLevel,
+            reasons: latestAiAssessment.reasons,
+            model: latestAiAssessment.model,
+          }
+        : null,
+
+      audit: {
+        valid: auditVerification.valid,
+        events: auditVerification.events,
+        timeline: auditEvents,
+      },
+    };
+  } finally {
+    client.release();
+  }
+}
+
 async function getOnboarding(
   applicationId: number,
   userId: number,
@@ -624,6 +742,7 @@ async function updateStatus(
 }
 
 export default {
+  getComplianceReport,
   getOnboarding,
   getDecisionHistory,
   verifyIdentity,

@@ -66,6 +66,12 @@ router.get(
   documentsController.getDocuments
 );
 
+router.get(
+  "/:id/report",
+  auth,
+  applicationsController.getComplianceReport
+);
+
 router.post(
   "/:id/documents",
   auth,
