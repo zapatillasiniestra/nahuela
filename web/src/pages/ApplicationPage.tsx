@@ -92,10 +92,20 @@ export default function ApplicationPage() {
     const [loadingReport, setLoadingReport] =
     useState(false);
 
-  useState(false);
+    const [application, setApplication] =
+    useState<any>(null);
+    
+    const [updatingStatus, setUpdatingStatus] =
+    useState(false);
+
     useEffect(() => {
     async function load() {
       try {
+        const applicationResult = await apiFetch(
+        `/applications/${id}`
+        );
+
+        setApplication(applicationResult);
         const result = await apiFetch(
           `/applications/${id}/decision-history`
         );
@@ -160,6 +170,32 @@ export default function ApplicationPage() {
             setLoadingReport(false);
         }
         }
+
+    async function updateApplicationStatus(
+        status: "under_review" | "approved" | "rejected"
+        ) {
+        if (!id) return;
+
+        setUpdatingStatus(true);
+        setError("");
+
+        try {
+            await apiFetch(`/applications/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ status }),
+            });
+
+            window.location.reload();
+        } catch (error) {
+            setError(
+            error instanceof Error
+                ? error.message
+                : "Failed to update application status"
+            );
+        } finally {
+            setUpdatingStatus(false);
+        }
+    } 
 
   if (loading) {
     return (
@@ -249,6 +285,46 @@ export default function ApplicationPage() {
 
           </div>
         </div>
+
+<div className="review-actions">
+
+    {application.status === "pending" && (
+        <button
+        className="secondary-button"
+        onClick={() =>
+            updateApplicationStatus("under_review")
+        }
+        disabled={updatingStatus}
+        >
+        Start review
+        </button>
+    )}
+
+    {application.status === "under_review" && (
+        <>
+        <button
+            className="primary-button"
+            onClick={() =>
+            updateApplicationStatus("approved")
+            }
+            disabled={updatingStatus}
+        >
+            Approve
+        </button>
+
+        <button
+            className="danger-button"
+            onClick={() =>
+            updateApplicationStatus("rejected")
+            }
+            disabled={updatingStatus}
+        >
+            Reject
+        </button>
+        </>
+    )}
+
+    </div>
 
 {onboardingDecision && (
   <section className="panel onboarding-result">

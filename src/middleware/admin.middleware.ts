@@ -1,23 +1,28 @@
-import type { Request, Response, NextFunction } from "express";
+import type {
+  Request,
+  Response,
+  NextFunction
+} from "express";
+
 import { AppError } from "../utils/AppError";
 
-async function adminOnly(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-  
+function adminOnly(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
   if (!req.user) {
-      throw new AppError("Unauthorized", 401);
-  }
-  
-  if (req.user.role !== "admin") {
-    return res.status(403).json({
-      error: "forbidden"
-    });
+    throw new AppError("Unauthorized", 401);
   }
 
-  return next();
+  if (req.user.role !== "admin") {
+    res.status(403).json({
+      error: "Forbidden",
+    });
+    return;
+  }
+
+  next();
 }
 
 export default adminOnly;
