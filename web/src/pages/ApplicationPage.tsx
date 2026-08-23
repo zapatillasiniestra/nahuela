@@ -180,12 +180,12 @@ export default function ApplicationPage() {
         setError("");
 
         try {
-            await apiFetch(`/applications/${id}/status`, {
+            const updated=await apiFetch(`/applications/${id}/status`, {
             method: "PATCH",
             body: JSON.stringify({ status }),
             });
+            setApplication(updated);
 
-            window.location.reload();
         } catch (error) {
             setError(
             error instanceof Error
