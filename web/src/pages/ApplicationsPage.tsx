@@ -15,12 +15,15 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     async function loadApplications() {
       try {
-        const data = await apiFetch("/applications");
+        const data = await apiFetch(`/applications?page=${page}&limit=10`);
         setApplications(data.data);
+        setTotalPages(data.totalPages);
       } catch (error) {
         setError(
           error instanceof Error
@@ -33,7 +36,7 @@ export default function ApplicationsPage() {
     }
 
     loadApplications();
-  }, []);
+  }, [page]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -43,7 +46,7 @@ export default function ApplicationsPage() {
   return (
     <main className="dashboard">
       <header className="topbar">
-        <strong>Nahuela</strong>
+        <strong>NAHUELA</strong>
 
         <button className="secondary-button" onClick={logout}>
           Sign out
@@ -95,6 +98,27 @@ export default function ApplicationsPage() {
               </Link>
             ))}
           </div>
+        )}
+        {totalPages > 1 && (
+            <div className="pagination">
+                <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                >
+                ← Previous
+                </button>
+
+                <span>
+                Page {page} of {totalPages}
+                </span>
+
+                <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                >
+                Next →
+                </button>
+            </div>
         )}
       </section>
     </main>
