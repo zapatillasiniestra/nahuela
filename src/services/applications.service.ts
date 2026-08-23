@@ -430,8 +430,7 @@ async function createApplication(
   email: string
 ) {
   const existing =
-    await repository.findActiveByUserAndEmail(
-      userId,
+    await repository.findActiveByEmail(
       email
     );
 
