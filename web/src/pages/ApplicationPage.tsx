@@ -264,7 +264,7 @@ export default function ApplicationPage() {
                 {application.status.replace("_", " ").toUpperCase()}
             </strong>
             </div>
-            
+
             <div className="decision-badge">
               {aiAssessment?.decision === "approved"
                 ? "APPROVED"
@@ -624,36 +624,75 @@ export default function ApplicationPage() {
             </section>
             )}
 
-        <section className="panel">
+<section className="panel">
+  <div className="panel-heading">
+    <div>
+      <h2>Audit timeline</h2>
+      <p>
+        Immutable record of onboarding events and decisions.
+      </p>
+    </div>
 
-          <h2>Audit timeline</h2>
+    <span
+      className={
+        data.auditVerification.valid
+          ? "status status-approved"
+          : "status status-rejected"
+      }
+    >
+      {data.auditVerification.valid
+        ? "✓ VERIFIED"
+        : "✕ INVALID"}
+    </span>
+  </div>
 
-          {data.auditEvents.map((event) => (
-            <div
-              className="timeline-item"
-              key={event.id}
-            >
+  <div className="timeline">
+    {data.auditEvents.map((event) => (
+      <div
+        className="timeline-item"
+        key={event.id}
+      >
+        <div className="timeline-content">
+          <strong>
+            {event.event_type}
+          </strong>
 
-              <div>
-                <strong>
-                  {event.event_type}
-                </strong>
+          <small>
+            {new Date(
+              event.created_at
+            ).toLocaleString()}
+          </small>
 
-                <small>
-                  {new Date(
-                    event.created_at
-                  ).toLocaleString()}
-                </small>
-              </div>
+          <small>
+            Provider: {event.provider}
+          </small>
+        </div>
 
-              <span className="timeline-decision">
-                {event.decision}
-              </span>
+        <div className="timeline-meta">
+          <span className="timeline-decision">
+            {event.decision}
+          </span>
 
-            </div>
-          ))}
+          {event.risk_level !== "not_applicable" && (
+            <small>
+              Risk: {event.risk_level}
+            </small>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
 
-        </section>
+  <div className="audit-summary">
+    <strong>
+      Audit integrity
+    </strong>
+
+    <span>
+      {data.auditVerification.events} events · SHA-256
+    </span>
+  </div>
+</section>
 
       </section>
     </main>

@@ -58,6 +58,15 @@ type DecisionHistory = {
   >;
 };
 
+async function getAuditEvents(
+  client: PoolClient,
+  applicationId: number
+) {
+  return auditService.getAuditEvents(
+    client,
+    applicationId
+  );
+}
 
 async function authorizeApplicationAccess(
   applicationId: number,
@@ -753,19 +762,20 @@ async function createApplication(
       email
     );
 
-    await runComplianceCheck(
-      client,
-      application.id,
-      full_name,
-      email
-    );
+const compliance =
+  await runComplianceCheck(
+    client,
+    application.id,
+    full_name,
+    email
+  );
 
-    const assessment =
-      await runAIAssessment(
-        full_name,
-        email,
-        verification
-      );
+const assessment =
+  await runAIAssessment(
+    full_name,
+    email,
+    verification
+  );
 
     await createAIAssessmentAudit(
       client,
@@ -776,23 +786,33 @@ async function createApplication(
       assessment
     );
 
-    if (
-      assessment.decision === "approved"
-    ) {
-      await repository.updateStatus(
-        client,
-        application.id,
-        "approved"
-      );
-    } else if (
-      assessment.decision === "rejected"
-    ) {
-      await repository.updateStatus(
-        client,
-        application.id,
-        "rejected"
-      );
-    }
+if (
+  compliance.decision === "flagged" ||
+  compliance.decision === "manual_review" ||
+  assessment.decision === "manual_review"
+) {
+  await repository.updateStatus(
+    client,
+    application.id,
+    "under_review"
+  );
+} else if (
+  assessment.decision === "approved"
+) {
+  await repository.updateStatus(
+    client,
+    application.id,
+    "approved"
+  );
+} else if (
+  assessment.decision === "rejected"
+) {
+  await repository.updateStatus(
+    client,
+    application.id,
+    "rejected"
+  );
+}
 
     await client.query("COMMIT");
 
@@ -889,6 +909,22 @@ async function updateStatus(
         status
       );
 
+      await auditService.createAuditEvent(
+        client,
+        {
+          applicationId,
+          eventType: "human.review.completed",
+          provider: "internal",
+          inputData: {
+            adminUserId,
+            previousStatus: currentStatus,
+            newStatus: status
+          },
+          decision: status,
+          reasons: []
+        }
+      );
+
     await auditRepository.createLog(
       client,
       applicationId,
@@ -914,6 +950,7 @@ async function updateStatus(
 
 
 export default {
+  getAuditEvents,
   getComplianceReport,
   getOnboarding,
   getDecisionHistory,

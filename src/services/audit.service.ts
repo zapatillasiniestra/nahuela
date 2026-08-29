@@ -19,6 +19,16 @@ interface CreateAuditData {
   reasons: string[];
 }
 
+async function getAuditTimeline(
+  client: PoolClient,
+  applicationId: number
+) {
+  return auditEventsRepository.findTimelineByApplicationId(
+    client,
+    applicationId
+  );
+}
+
 async function createAuditEvent(
   client: PoolClient,
   data: CreateAuditData
@@ -97,6 +107,7 @@ async function verifyAuditChain(
 }
 
 export default {
+  getAuditTimeline,
   createAuditEvent,
   getAuditEvents,
   verifyAuditChain

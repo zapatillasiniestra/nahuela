@@ -458,6 +458,47 @@ async function getComplianceReport(
   }
 }
 
+async function getAuditEvents(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const applicationId = Number(req.params.id);
+
+    if (!Number.isInteger(applicationId)) {
+      throw new AppError(
+        "invalid application id",
+        400
+      );
+    }
+
+    const userId = req.user!.userId;
+
+    await applicationsService.authorizeApplicationAccess(
+      applicationId,
+      userId,
+      req.user!.role
+    );
+
+    const client = await pool.connect();
+
+    try {
+      const events =
+        await applicationsService.getAuditEvents(
+          client,
+          applicationId
+        );
+
+      res.status(200).json(events);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   getApplications,
   getAllApplications,
@@ -473,4 +514,6 @@ export default {
   getDecisionHistory,
   getOnboarding,
   getComplianceReport,
+  getAuditEvents
 };
+

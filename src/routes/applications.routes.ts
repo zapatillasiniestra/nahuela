@@ -72,6 +72,12 @@ router.get(
   applicationsController.getComplianceReport
 );
 
+router.get(
+  "/:id/audit",
+  auth,
+  applicationsController.getAuditEvents
+);
+
 router.post(
   "/:id/documents",
   auth,

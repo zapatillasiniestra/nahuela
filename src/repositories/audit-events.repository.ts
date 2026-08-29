@@ -116,8 +116,38 @@ async function create(
   return result.rows[0];
 }
 
+async function findTimelineByApplicationId(
+  client: PoolClient,
+  applicationId: number
+) {
+  const result = await client.query(
+    `
+    SELECT
+      id,
+      event_type,
+      provider,
+      model,
+      model_version,
+      decision,
+      risk_level,
+      reasons,
+      previous_event_hash,
+      event_hash,
+      hash_algorithm,
+      created_at
+    FROM audit_events
+    WHERE application_id = $1
+    ORDER BY id ASC
+    `,
+    [applicationId]
+  );
+
+  return result.rows;
+}
+
 export default {
   findLatestHash,
   findByApplicationId,
   create,
+  findTimelineByApplicationId
 };
