@@ -172,30 +172,40 @@ export default function ApplicationPage() {
         }
 
     async function updateApplicationStatus(
-        status: "under_review" | "approved" | "rejected"
-        ) {
-        if (!id) return;
+  status: "under_review" | "approved" | "rejected"
+) {
+  if (!id) return;
 
-        setUpdatingStatus(true);
-        setError("");
+  setUpdatingStatus(true);
+  setError("");
 
-        try {
-            const updated=await apiFetch(`/applications/${id}/status`, {
-            method: "PATCH",
-            body: JSON.stringify({ status }),
-            });
-            setApplication(updated);
+  try {
+    await apiFetch(`/applications/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
 
-        } catch (error) {
-            setError(
-            error instanceof Error
-                ? error.message
-                : "Failed to update application status"
-            );
-        } finally {
-            setUpdatingStatus(false);
-        }
-    } 
+    const applicationResult = await apiFetch(
+      `/applications/${id}`
+    );
+
+    const historyResult = await apiFetch(
+      `/applications/${id}/decision-history`
+    );
+
+    setApplication(applicationResult);
+    setData(historyResult);
+
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Failed to update application status"
+    );
+  } finally {
+    setUpdatingStatus(false);
+  }
+}
 
   if (loading) {
     return (
