@@ -883,6 +883,24 @@ async function updateStatus(
         status
       );
 
+if (status === "under_review") {
+  await auditService.createAuditEvent(
+    client,
+    {
+      applicationId,
+      eventType: "human.review.started",
+      provider: "internal",
+      inputData: {
+        adminUserId,
+        previousStatus: currentStatus,
+        newStatus: status
+      },
+      decision: status,
+      reasons: []
+    }
+  );
+}
+
 if (
   status === "approved" ||
   status === "rejected"
