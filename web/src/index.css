@@ -495,3 +495,48 @@ a {
   color: white;
   border-color: #111;
 }
+
+.provider-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.provider-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 100px;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.provider-row:last-child {
+  border-bottom: none;
+}
+
+.provider-row strong,
+.provider-row small {
+  display: block;
+}
+
+.provider-row small {
+  margin-top: 4px;
+  color: #6b7280;
+}
+
+.provider-status {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.provider-active {
+  color: hsl(143, 64%, 24%);
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .provider-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

@@ -5,6 +5,9 @@ import swaggerSpec from "./swagger";
 import app from "./app";
 
 import startEmailWorker from "./jobs/email.worker";
+import providerRegistryRoutes
+  from "./routes/provider-registry.routes";
+
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -14,6 +17,11 @@ app.use(
   "/docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec)
+);
+
+app.use(
+  "/providers",
+  providerRegistryRoutes
 );
 
 app.listen(PORT, () => {

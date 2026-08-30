@@ -7,6 +7,7 @@ import {
 } from "../types/document";
 import auditService from "./audit.service";
 import { AppError } from "../utils/AppError";
+import applicationsRepository from "../repositories/applications.repository";
 
 async function verifyDocument(
   input: DocumentRequest
@@ -17,6 +18,28 @@ async function verifyDocument(
 
   try {
     await client.query("BEGIN");
+
+    const application =
+      await applicationsRepository.findById(
+        input.applicationId
+      );
+
+    if (!application) {
+      throw new AppError(
+        "application not found",
+        404
+      );
+    }
+
+    if (
+      application.status === "approved" ||
+      application.status === "rejected"
+    ) {
+      throw new AppError(
+        "application already finalized",
+        400
+      );
+    }
 
     const existing =
       await documentsRepository.findByApplicationAndHash(

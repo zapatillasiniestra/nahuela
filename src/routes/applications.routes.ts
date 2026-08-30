@@ -22,12 +22,6 @@ router.get(
 );
 
 router.get(
-  "/:id/ai-audit/verify",
-  auth,
-  applicationsController.verifyAudit
-);
-
-router.get(
   "/:id/ai-audit",
   auth,
   applicationsController.getAudit
@@ -70,6 +64,12 @@ router.get(
   "/:id/report",
   auth,
   applicationsController.getComplianceReport
+);
+
+router.get(
+  "/:id/audit/verify",
+  auth,
+  applicationsController.verifyAudit
 );
 
 router.get(

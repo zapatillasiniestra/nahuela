@@ -2,6 +2,7 @@ import pool from "../db/db";
 import applicationsService from "./applications.service";
 import { verifyAuditEvent } from "../utils/audit-verifier";
 import { MockComplianceProvider } from "../providers/compliance/MockComplianceProvider";
+import auditService from "./audit.service";
 
 describe("createApplication compliance and audit flow", () => {
   test("creates compliance and AI audit events in one chain", async () => {
@@ -140,11 +141,17 @@ describe("createApplication compliance and audit flow", () => {
 
   try {
 
-    await applicationsService.updateStatus(
-      application.id,
-      4,
-      "approved"
-    );
+await applicationsService.updateStatus(
+  application.id,
+  4,
+  "under_review"
+);
+
+await applicationsService.updateStatus(
+  application.id,
+  4,
+  "approved"
+);
 
     const result = await pool.query(
       `
@@ -161,9 +168,16 @@ describe("createApplication compliance and audit flow", () => {
       [application.id]
     );
 
-    expect(result.rows).toHaveLength(5);
+expect(result.rows).toHaveLength(6);
 
-    const humanCompleted = result.rows[4];
+const humanStarted = result.rows[4];
+const humanCompleted = result.rows[5];
+
+expect(humanStarted.event_type)
+  .toBe("human.review.started");
+
+expect(humanStarted.decision)
+  .toBe("under_review");
 
 expect(humanCompleted.event_type)
   .toBe("human.review.completed");
@@ -171,10 +185,121 @@ expect(humanCompleted.event_type)
 expect(humanCompleted.decision)
   .toBe("approved");
 
-expect(humanCompleted.previous_event_hash)
+expect(humanStarted.previous_event_hash)
   .toBe(result.rows[3].event_hash);
 
+expect(humanCompleted.previous_event_hash)
+  .toBe(humanStarted.event_hash);
+
 } finally {
+    await pool.query(
+      "DELETE FROM applications WHERE id = $1",
+      [application.id]
+    );
+  }
+});
+
+test("keeps audit chain valid after human review", async () => {
+  const application =
+    await applicationsService.createApplication(
+      4,
+      "Audit Chain Test",
+      `audit-${Date.now()}@example.com`
+    );
+
+  try {
+    await applicationsService.updateStatus(
+      application.id,
+      4,
+      "under_review"
+    );
+
+    await applicationsService.updateStatus(
+      application.id,
+      4,
+      "approved"
+    );
+
+const client = await pool.connect();
+
+try {
+  const verification =
+    await auditService.verifyAuditChain(
+      client,
+      application.id
+    );
+
+  expect(verification.valid).toBe(true);
+  expect(verification.events).toBe(6);
+} finally {
+  client.release();
+}
+  } finally {
+    await pool.query(
+      "DELETE FROM applications WHERE id = $1",
+      [application.id]
+    );
+  }
+});
+
+test("detects tampering with a human review audit event", async () => {
+  const application =
+    await applicationsService.createApplication(
+      4,
+      "Tamper Test",
+      `tamper-${Date.now()}@example.com`
+    );
+
+  try {
+    await applicationsService.updateStatus(
+      application.id,
+      4,
+      "under_review"
+    );
+
+    await applicationsService.updateStatus(
+      application.id,
+      4,
+      "approved"
+    );
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM audit_events
+      WHERE application_id = $1
+      ORDER BY id ASC
+      `,
+      [application.id]
+    );
+
+    const humanReview = result.rows.at(-1);
+
+    expect(humanReview.event_type)
+      .toBe("human.review.completed");
+
+    const tamperedEvent = {
+      applicationId: humanReview.application_id,
+      eventType: humanReview.event_type,
+      provider: humanReview.provider,
+      model: humanReview.model ?? undefined,
+      modelVersion:
+        humanReview.model_version ?? undefined,
+      inputHash: humanReview.input_hash,
+      outputHash: humanReview.output_hash,
+      previousEventHash:
+        humanReview.previous_event_hash ?? undefined,
+      decision: "rejected",
+      riskLevel:
+        humanReview.risk_level ?? undefined,
+      reasons: humanReview.reasons,
+      eventHash: humanReview.event_hash,
+    };
+
+    expect(
+      verifyAuditEvent(tamperedEvent)
+    ).toBe(false);
+  } finally {
     await pool.query(
       "DELETE FROM applications WHERE id = $1",
       [application.id]
@@ -198,8 +323,9 @@ test("compliance report uses application workflow status", async () => {
         "user"
       );
 
-    expect(report.status).toBe("under_review");
-  } finally {
+expect(report.status).toBe("pending");
+
+} finally {
     await pool.query(
       "DELETE FROM applications WHERE id = $1",
       [application.id]

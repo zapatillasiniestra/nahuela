@@ -95,7 +95,7 @@ describe("auth routes", () => {
   });
   test("AI audit verification requires authentication", async () => {
   const response = await request(app)
-    .get("/applications/4/ai-audit/verify");
+    .get("/applications/4/audit/verify");
 
   expect(response.status).toBe(401);
 });
@@ -103,22 +103,37 @@ describe("auth routes", () => {
 test("AI audit verification returns valid chain", async () => {
   const provider = new LocalAuditProvider();
 
-  const auditEvent = await provider.createAuditEvent({
-    applicationId: 4,
-    eventType: "ai.assessment.completed",
-    provider: "mock",
-    model: "mock",
-    modelVersion: "1",
-    inputData: {
-      fullName: "Brenda Giménez",
-      email: "brenda@test.com",
-    },
-    decision: "approved",
-    riskLevel: "low",
-    reasons: [
-      "No significant risk indicators detected."
-    ],
-  });
+const latest = await pool.query(
+  `
+  SELECT event_hash
+  FROM audit_events
+  WHERE application_id = $1
+  ORDER BY id DESC
+  LIMIT 1
+  `,
+  [4]
+);
+
+const previousEventHash =
+  latest.rows[0]?.event_hash;
+
+const auditEvent = await provider.createAuditEvent({
+  applicationId: 4,
+  eventType: "ai.assessment.completed",
+  provider: "mock",
+  model: "mock",
+  modelVersion: "1",
+  inputData: {
+    fullName: "Brenda Giménez",
+    email: "brenda@test.com",
+  },
+  decision: "approved",
+  riskLevel: "low",
+  reasons: [
+    "No significant risk indicators detected."
+  ],
+  previousEventHash,
+});
 
   const result=await pool.query(
     `
@@ -161,7 +176,7 @@ test("AI audit verification returns valid chain", async () => {
         "No significant risk indicators detected."
       ]),
       auditEvent.outputHash,
-      null,
+      auditEvent.previousEventHash ?? null,
       auditEvent.eventHash,
       "SHA-256",
     ]
@@ -178,7 +193,7 @@ test("AI audit verification returns valid chain", async () => {
   );
 
   const response = await request(app)
-    .get("/applications/4/ai-audit/verify")
+    .get("/applications/4/audit/verify")
     .set(
       "Authorization",
       `Bearer ${token}`
@@ -208,7 +223,7 @@ test("AI audit verification rejects invalid application ID", async () => {
   );
 
   const response = await request(app)
-    .get("/applications/not-a-number/ai-audit/verify")
+    .get("/applications/not-a-number/audit/verify")
     .set(
       "Authorization",
       `Bearer ${token}`
@@ -319,6 +334,139 @@ test("application owner can access decision history", async () => {
   expect(response.body.compliance).toBeInstanceOf(Array);
   expect(response.body.aiAssessments).toBeInstanceOf(Array);
   expect(response.body.auditEvents).toBeInstanceOf(Array);
+});
+
+test("document verification requires authentication", async () => {
+  const response = await request(app)
+    .post("/applications/4/documents")
+    .send({
+      documentType: "dni",
+      fileName: "test.png",
+      mimeType: "image/png",
+      fileHash: `auth-${Date.now()}`
+    });
+
+  expect(response.status).toBe(401);
+});
+
+test("application owner can verify a document", async () => {
+  const response = await request(app)
+    .post("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 4,
+          role: "user"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    )
+    .send({
+      documentType: "dni",
+      fileName: "owner-test.png",
+      mimeType: "image/png",
+      fileHash: `owner-${Date.now()}`
+    });
+
+  expect(response.status).toBe(201);
+});
+
+test("different user cannot verify a document", async () => {
+  const response = await request(app)
+    .post("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 1,
+          role: "user"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    )
+    .send({
+      documentType: "dni",
+      fileName: "forbidden-test.png",
+      mimeType: "image/png",
+      fileHash: `forbidden-${Date.now()}`
+    });
+
+  expect(response.status).toBe(403);
+});
+
+test("admin can verify a document", async () => {
+  const response = await request(app)
+    .post("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 1,
+          role: "admin"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    )
+    .send({
+      documentType: "dni",
+      fileName: "admin-test.png",
+      mimeType: "image/png",
+      fileHash: `admin-${Date.now()}`
+    });
+
+  expect(response.status).toBe(201);
+});
+
+test("application owner can access documents", async () => {
+  const response = await request(app)
+    .get("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 4,
+          role: "user"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    );
+
+  expect(response.status).toBe(200);
+});
+
+test("different user cannot access documents", async () => {
+  const response = await request(app)
+    .get("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 1,
+          role: "user"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    );
+
+  expect(response.status).toBe(403);
+});
+
+test("admin can access documents", async () => {
+  const response = await request(app)
+    .get("/applications/4/documents")
+    .set(
+      "Authorization",
+      `Bearer ${jwt.sign(
+        {
+          userId: 1,
+          role: "admin"
+        },
+        process.env.JWT_SECRET!
+      )}`
+    );
+
+  expect(response.status).toBe(200);
 });
 
 });

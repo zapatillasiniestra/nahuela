@@ -369,7 +369,7 @@ const options = {
         },
       },
 
-      "/applications/{id}/ai-audit/verify": {
+      "/applications/{id}/audit/verify": {
         get: {
           tags: ["Audit"],
           summary: "Verify the application's audit chain",

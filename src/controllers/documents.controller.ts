@@ -6,6 +6,7 @@ import {
 
 import documentsService from "../services/documents.service";
 import { AppError } from "../utils/AppError";
+import applicationsService from "../services/applications.service";
 
 async function verifyDocument(
   req: Request,
@@ -19,6 +20,12 @@ async function verifyDocument(
 
     const applicationId = Number(
       req.params.id
+    );
+
+    await applicationsService.authorizeApplicationAccess(
+      applicationId,
+      req.user.userId,
+      req.user.role
     );
 
     if (!Number.isInteger(applicationId)) {
@@ -75,6 +82,12 @@ async function getDocuments(
 
     const applicationId = Number(
       req.params.id
+    );
+
+    await applicationsService.authorizeApplicationAccess(
+      applicationId,
+      req.user.userId,
+      req.user.role
     );
 
     if (!Number.isInteger(applicationId)) {

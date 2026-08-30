@@ -3,7 +3,8 @@ export type DocumentType =
   | "national_id"
   | "drivers_license"
   | "proof_of_address"
-  | "business_registration";
+  | "business_registration"
+  | "dni";
 
 export type DocumentStatus =
   | "uploaded"

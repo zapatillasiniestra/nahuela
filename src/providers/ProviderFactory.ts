@@ -9,6 +9,9 @@ import {
   MockAIProvider
 } from "./ai";
 
+import { DocumentProvider } from "./document/DocumentProvider";
+import MockDocumentProvider from "./document/MockDocumentProvider";
+
 export function createIdentityProvider(): IdentityProvider {
   switch (process.env.IDENTITY_PROVIDER) {
 
@@ -29,6 +32,17 @@ export function createAIProvider(): AIProvider {
     case "mock":
     default:
       return new MockAIProvider();
+
+  }
+
+}
+
+export function createDocumentProvider(): DocumentProvider {
+  switch (process.env.DOCUMENT_PROVIDER) {
+
+    case "mock":
+    default:
+      return new MockDocumentProvider();
 
   }
 
