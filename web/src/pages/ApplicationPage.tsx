@@ -34,13 +34,26 @@ interface ComplianceReport {
   };
 }
 
+
+interface AuditEvent {
+  id: number;
+  event_type: string;
+  provider: string;
+  model: string | null;
+  model_version: string | null;
+  decision: string;
+  risk_level: string | null;
+  reasons: string[];
+  created_at: string;
+}
+
 interface DecisionHistory {
   applicationId: number;
   identity: any[];
   documents: any[];
   compliance: any[];
   aiAssessments: any[];
-  auditEvents: any[];
+  auditEvents: AuditEvent[];
   auditVerification: {
     valid: boolean;
     events: number;
@@ -276,11 +289,9 @@ export default function ApplicationPage() {
             </div>
 
             <div className="decision-badge">
-              {aiAssessment?.decision === "approved"
-                ? "APPROVED"
-                : "PENDING"}
+            {application?.status?.replace("_", " ").toUpperCase()}
             </div>
-
+            
         <button
             className="primary-button"
             onClick={getOnboardingDecision}
@@ -639,7 +650,7 @@ export default function ApplicationPage() {
     <div>
       <h2>Audit timeline</h2>
       <p>
-        Immutable record of onboarding events and decisions.
+        Immutable record of onboarding events and decisions
       </p>
     </div>
 
@@ -658,19 +669,18 @@ export default function ApplicationPage() {
 
   <div className="timeline">
     {data.auditEvents.map((event) => (
-      <div
-        className="timeline-item"
-        key={event.id}
-      >
+      <div className="timeline-item" key={event.id}>
         <div className="timeline-content">
           <strong>
-            {event.event_type}
+            {event.event_type
+              .replaceAll(".", " ")
+              .replace(/\b\w/g, (char) =>
+                char.toUpperCase()
+              )}
           </strong>
 
           <small>
-            {new Date(
-              event.created_at
-            ).toLocaleString()}
+            {new Date(event.created_at).toLocaleString()}
           </small>
 
           <small>
@@ -683,21 +693,19 @@ export default function ApplicationPage() {
             {event.decision}
           </span>
 
-          {event.risk_level !== "not_applicable" && (
-            <small>
-              Risk: {event.risk_level}
-            </small>
-          )}
+          {event.risk_level &&
+            event.risk_level !== "not_applicable" && (
+              <small>
+                Risk: {event.risk_level}
+              </small>
+            )}
         </div>
       </div>
     ))}
   </div>
 
   <div className="audit-summary">
-    <strong>
-      Audit integrity
-    </strong>
-
+    <strong>Audit integrity</strong>
     <span>
       {data.auditVerification.events} events · SHA-256
     </span>

@@ -130,6 +130,83 @@ describe("createApplication compliance and audit flow", () => {
     }
   });
 
+  test("creates chained human review audit events", async () => {
+  const application =
+    await applicationsService.createApplication(
+      4,
+      "Human Review Test User",
+      `review-${Date.now()}@example.com`
+    );
+
+  try {
+
+    await applicationsService.updateStatus(
+      application.id,
+      4,
+      "approved"
+    );
+
+    const result = await pool.query(
+      `
+      SELECT
+        event_type,
+        application_id,
+        previous_event_hash,
+        event_hash,
+        decision
+      FROM audit_events
+      WHERE application_id = $1
+      ORDER BY id ASC
+      `,
+      [application.id]
+    );
+
+    expect(result.rows).toHaveLength(5);
+
+    const humanCompleted = result.rows[4];
+
+expect(humanCompleted.event_type)
+  .toBe("human.review.completed");
+
+expect(humanCompleted.decision)
+  .toBe("approved");
+
+expect(humanCompleted.previous_event_hash)
+  .toBe(result.rows[3].event_hash);
+
+} finally {
+    await pool.query(
+      "DELETE FROM applications WHERE id = $1",
+      [application.id]
+    );
+  }
+});
+
+test("compliance report uses application workflow status", async () => {
+  const application =
+    await applicationsService.createApplication(
+      4,
+      "Report Status Test",
+      `report-${Date.now()}@example.com`
+    );
+
+  try {
+    const report =
+      await applicationsService.getComplianceReport(
+        application.id,
+        4,
+        "user"
+      );
+
+    expect(report.status).toBe("under_review");
+  } finally {
+    await pool.query(
+      "DELETE FROM applications WHERE id = $1",
+      [application.id]
+    );
+  }
+});
+
   afterAll(async () => {
     await pool.end();
   });

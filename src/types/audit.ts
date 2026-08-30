@@ -5,4 +5,5 @@ export type AuditEventType =
   | "compliance.check.failed"
   | "ai.assessment.completed"
   | "document.verification.completed"
+  | "human.review.started"
   | "human.review.completed";

@@ -235,20 +235,18 @@ async function getComplianceReport(
   const latestAiAssessment =
     history.aiAssessments.at(-1) ?? null;
 
-  const approved =
-    latestIdentity?.verified === true &&
-    latestDocument?.status === "verified" &&
-    latestCompliance?.decision === "clear" &&
-    latestAiAssessment?.decision === "approved" &&
-    history.auditVerification.valid === true;
+const application =
+  await repository.findById(applicationId);
 
+if (!application) {
+  throw new AppError(
+    "application not found",
+    404
+  );
+}
   return {
     applicationId,
-
-    status: approved
-      ? "approved"
-      : "pending",
-
+    status: application.status,
     identity: latestIdentity
       ? {
           verified:
@@ -761,14 +759,12 @@ async function createApplication(
       full_name,
       email
     );
-
-const compliance =
-  await runComplianceCheck(
-    client,
-    application.id,
-    full_name,
-    email
-  );
+await runComplianceCheck(
+  client,
+  application.id,
+  full_name,
+  email
+);
 
 const assessment =
   await runAIAssessment(
@@ -786,33 +782,11 @@ const assessment =
       assessment
     );
 
-if (
-  compliance.decision === "flagged" ||
-  compliance.decision === "manual_review" ||
-  assessment.decision === "manual_review"
-) {
-  await repository.updateStatus(
-    client,
-    application.id,
-    "under_review"
-  );
-} else if (
-  assessment.decision === "approved"
-) {
-  await repository.updateStatus(
-    client,
-    application.id,
-    "approved"
-  );
-} else if (
-  assessment.decision === "rejected"
-) {
-  await repository.updateStatus(
-    client,
-    application.id,
-    "rejected"
-  );
-}
+await repository.updateStatus(
+  client,
+  application.id,
+  "under_review"
+);
 
     await client.query("COMMIT");
 
@@ -909,23 +883,28 @@ async function updateStatus(
         status
       );
 
-      await auditService.createAuditEvent(
-        client,
-        {
-          applicationId,
-          eventType: "human.review.completed",
-          provider: "internal",
-          inputData: {
-            adminUserId,
-            previousStatus: currentStatus,
-            newStatus: status
-          },
-          decision: status,
-          reasons: []
-        }
-      );
+if (
+  status === "approved" ||
+  status === "rejected"
+) {
+  await auditService.createAuditEvent(
+    client,
+    {
+      applicationId,
+      eventType: "human.review.completed",
+      provider: "internal",
+      inputData: {
+        adminUserId,
+        previousStatus: currentStatus,
+        newStatus: status
+      },
+      decision: status,
+      reasons: []
+    }
+  );
+}
 
-    await auditRepository.createLog(
+await auditRepository.createLog(
       client,
       applicationId,
       adminUserId,
