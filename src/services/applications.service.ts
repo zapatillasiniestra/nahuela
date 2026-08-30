@@ -785,7 +785,7 @@ const assessment =
 await repository.updateStatus(
   client,
   application.id,
-  "under_review"
+  "pending"
 );
 
     await client.query("COMMIT");
