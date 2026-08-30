@@ -1,4 +1,7 @@
-import type { AIAssessment, AIAssessmentInput } from "./AIAssessment";
+import type {
+  AIAssessment,
+  AIAssessmentInput,
+} from "./AIAssessment";
 
 export interface AIProvider {
   assessApplication(

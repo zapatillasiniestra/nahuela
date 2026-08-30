@@ -3,9 +3,25 @@ import { LocalIdentityProvider } from "./LocalIdentityProvider";
 import { MockIdentityProvider } from "./MockIdentityProvider";
 import { ExternalIdentityProvider } from "./ExternalIdentityProvider";
 import { SumsubProvider } from "../identity/SumsubProvider";
+import pool from "../../db/db";
 
-export function createIdentityProvider(): IdentityProvider {
-  const provider = process.env.IDENTITY_PROVIDER ?? "local";
+export async function createIdentityProvider(): Promise<IdentityProvider> {
+  const result = await pool.query(
+    `
+    SELECT name
+    FROM provider_registry
+    WHERE type = 'identity'
+      AND enabled = true
+    ORDER BY id
+    LIMIT 1
+    `
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("No active identity provider configured");
+  }
+
+  const provider = result.rows[0].name;
 
   switch (provider) {
     case "local":

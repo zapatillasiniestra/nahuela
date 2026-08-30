@@ -9,7 +9,7 @@ export async function assessApplication(
   applicationId: number,
   input: AIAssessmentInput
 ) {
-  const aiProvider = createAIProvider();
+  const aiProvider = await createAIProvider();
 
   const assessment =
     await aiProvider.assessApplication(input);

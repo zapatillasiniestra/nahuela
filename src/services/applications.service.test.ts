@@ -4,8 +4,27 @@ import { verifyAuditEvent } from "../utils/audit-verifier";
 import { MockComplianceProvider } from "../providers/compliance/MockComplianceProvider";
 import auditService from "./audit.service";
 
+beforeEach(async () => {
+  await pool.query(`
+    UPDATE provider_registry
+    SET enabled = false
+    WHERE type IN ('identity', 'compliance', 'ai')
+  `);
+
+  await pool.query(`
+    UPDATE provider_registry
+    SET enabled = true
+    WHERE
+      (type = 'identity' AND name = 'local')
+      OR
+      (type = 'compliance' AND name = 'local')
+      OR
+      (type = 'ai' AND name = 'mock')
+  `);
+});
+
 describe("createApplication compliance and audit flow", () => {
-  test("creates compliance and AI audit events in one chain", async () => {
+    test("creates compliance and AI audit events in one chain", async () => {
     const application =
       await applicationsService.createApplication(
         4,
@@ -92,46 +111,72 @@ describe("createApplication compliance and audit flow", () => {
     );
   });
 
-  test("rolls back application when compliance provider fails", async () => {
-    process.env.COMPLIANCE_PROVIDER = "mock";
+test("rolls back application when compliance provider fails", async () => {
+  const email = `failure-${Date.now()}@example.com`;
 
-    const originalCheck =
-      MockComplianceProvider.prototype.check;
+  await pool.query(`
+    UPDATE provider_registry
+    SET enabled = false
+    WHERE type = 'compliance'
+  `);
 
-    MockComplianceProvider.prototype.check = jest
-      .fn()
-      .mockRejectedValue(
-        new Error("Compliance provider unavailable")
-      );
+  await pool.query(`
+    UPDATE provider_registry
+    SET enabled = true
+    WHERE type = 'compliance'
+      AND name = 'mock'
+  `);
 
-    try {
-      await expect(
-        applicationsService.createApplication(
-          4,
-          "Failure Test User",
-          "failure-test@example.com"
-        )
-      ).rejects.toThrow(
-        "Compliance provider unavailable"
-      );
+  const originalCheck =
+    MockComplianceProvider.prototype.check;
 
-      const result = await pool.query(
-        `
-        SELECT id
-        FROM applications
-        WHERE email = $1
-        `,
-        ["failure-test@example.com"]
-      );
+  MockComplianceProvider.prototype.check = jest
+    .fn()
+    .mockRejectedValue(
+      new Error("Compliance provider unavailable")
+    );
 
-      expect(result.rows).toHaveLength(0);
-    } finally {
-      MockComplianceProvider.prototype.check =
-        originalCheck;
-    }
-  });
+  try {
+    await expect(
+      applicationsService.createApplication(
+        4,
+        "Failure Test User",
+        email
+      )
+    ).rejects.toThrow(
+      "Compliance provider unavailable"
+    );
 
-  test("creates chained human review audit events", async () => {
+    const result = await pool.query(
+      `
+      SELECT id
+      FROM applications
+      WHERE email = $1
+      `,
+      [email]
+    );
+
+    expect(result.rows).toHaveLength(0);
+  } finally {
+    MockComplianceProvider.prototype.check =
+      originalCheck;
+
+    await pool.query(`
+      UPDATE provider_registry
+      SET enabled = false
+      WHERE type = 'compliance'
+    `);
+
+    await pool.query(`
+      UPDATE provider_registry
+      SET enabled = true
+      WHERE type = 'compliance'
+        AND name = 'mock'
+    `);
+  }
+});
+
+test("creates chained human review audit events", async () => {
   const application =
     await applicationsService.createApplication(
       4,
