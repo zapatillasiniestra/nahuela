@@ -1,6 +1,6 @@
 import pool from "../db/db";
 import documentsRepository from "../repositories/documents.repository";
-import createDocumentProvider from "../providers/document/DocumentProviderFactory";
+import {createDocumentProvider} from "../providers/document/DocumentProviderFactory";
 import {
   DocumentRequest,
   DocumentVerification,
@@ -12,7 +12,7 @@ import applicationsRepository from "../repositories/applications.repository";
 async function verifyDocument(
   input: DocumentRequest
 ): Promise<DocumentVerification> {
-  const provider = createDocumentProvider();
+  const provider = await createDocumentProvider();
 
   const client = await pool.connect();
 
