@@ -29,7 +29,7 @@ Providers
   ├── Compliance
   └── AI
 
-Audit Events
+Internal Audit Events
   ↓
 SHA-256 hash chain
   ↓
@@ -43,7 +43,7 @@ Verification
 * JWT authentication and RBAC
 * Identity, document, compliance verification with pluggable providers
 * AI-powered risk assessment
-* Tamper-evident audit events with SHA-256 hash chaining
+* Internal tamper-evident audit events with SHA-256 hash chaining
 * End-to-end decision history and audit verification
 * Controlled onboarding status transitions
 * REST APIs with Swagger/OpenAPI documentation
