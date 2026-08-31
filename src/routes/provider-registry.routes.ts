@@ -1,13 +1,22 @@
 import { Router } from "express";
-import controller from "../controllers/provider-registry.controller";
+import providerRegistryController from "../controllers/provider-registry.controller";
+import authMiddleware from "../middleware/auth.middleware";
+import adminMiddleware from "../middleware/admin.middleware";
 
 const router = Router();
 
-router.get("/", controller.getProviders);
+router.get(
+  "/",
+  authMiddleware,
+  adminMiddleware,
+  providerRegistryController.getProviders
+);
 
 router.patch(
   "/:type/:name",
-  controller.setEnabled
+  authMiddleware,
+  adminMiddleware,
+  providerRegistryController.updateProvider
 );
 
 export default router;

@@ -5,6 +5,7 @@ import applicationsRoutes from "./routes/applications.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import requestLogger from "./middleware/logger.middleware";
 import healthRoutes from "./routes/health.routes";
+import providerRegistryRoutes from "./routes/provider-registry.routes"
 
 const app = express();
 
@@ -20,6 +21,11 @@ app.use(
 app.use(express.json());
 
 app.use(requestLogger);
+
+app.use(
+  "/providers",
+  providerRegistryRoutes
+);
 
 app.use("/", authRoutes);
 app.use("/applications", applicationsRoutes);

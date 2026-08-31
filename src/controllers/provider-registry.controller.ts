@@ -1,17 +1,17 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
-
+import { Request, Response, NextFunction } from "express";
 import providerRegistryService from "../services/provider-registry.service";
+import { AppError } from "../utils/AppError";
 
 async function getProviders(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
+    if (!req.user) {
+      throw new AppError("Unauthorized", 401);
+    }
+
     const providers =
       await providerRegistryService.getProviders();
 
@@ -21,24 +21,38 @@ async function getProviders(
   }
 }
 
-async function setEnabled(
+async function updateProvider(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    const type = String(req.params.type);
-    const name = String(req.params.name);
+    if (!req.user) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const { type, name } = req.params;
     const { enabled } = req.body;
 
+    if (
+      typeof type !== "string" ||
+      typeof name !== "string"
+    ) {
+      throw new AppError(
+        "Invalid provider",
+        400
+      );
+    }
+
     if (typeof enabled !== "boolean") {
-      return res.status(400).json({
-        error: "enabled must be a boolean",
-      });
+      throw new AppError(
+        "enabled must be a boolean",
+        400
+      );
     }
 
     const provider =
-      await providerRegistryService.setEnabled(
+      await providerRegistryService.updateProvider(
         type,
         name,
         enabled
@@ -52,5 +66,5 @@ async function setEnabled(
 
 export default {
   getProviders,
-  setEnabled,
+  updateProvider,
 };

@@ -1,48 +1,85 @@
 import pool from "../db/db";
-import repository from "../repositories/provider-registry.repository";
 import { AppError } from "../utils/AppError";
 
-const VALID_TYPES = [
-  "identity",
-  "compliance",
-  "document",
-  "ai",
-];
-
 async function getProviders() {
-  const client = await pool.connect();
+  const result = await pool.query(`
+    SELECT
+      id,
+      type,
+      name,
+      enabled
+    FROM provider_registry
+    ORDER BY type ASC, id ASC
+  `);
 
-  try {
-    return await repository.findAll(client);
-  } finally {
-    client.release();
-  }
+  return result.rows;
 }
 
-async function setEnabled(
+async function updateProvider(
   type: string,
   name: string,
   enabled: boolean
 ) {
-  if (!VALID_TYPES.includes(type)) {
-    throw new AppError("invalid provider type", 400);
-  }
-
   const client = await pool.connect();
 
   try {
-    const provider = await repository.updateEnabled(
-      client,
-      type,
-      name,
-      enabled
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `
+      SELECT id
+      FROM provider_registry
+      WHERE type = $1
+        AND name = $2
+      FOR UPDATE
+      `,
+      [type, name]
     );
 
-    if (!provider) {
-      throw new AppError("provider not found", 404);
+    if (result.rows.length === 0) {
+      throw new AppError(
+        "Provider not found",
+        404
+      );
     }
 
-    return provider;
+    /*
+     * Only one provider can be active
+     * for each provider type.
+     */
+    if (enabled) {
+      await client.query(
+        `
+        UPDATE provider_registry
+        SET enabled = false
+        WHERE type = $1
+        `,
+        [type]
+      );
+    }
+
+    const updated =
+      await client.query(
+        `
+        UPDATE provider_registry
+        SET enabled = $3
+        WHERE type = $1
+          AND name = $2
+        RETURNING
+          id,
+          type,
+          name,
+          enabled
+        `,
+        [type, name, enabled]
+      );
+
+    await client.query("COMMIT");
+
+    return updated.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
   } finally {
     client.release();
   }
@@ -50,5 +87,5 @@ async function setEnabled(
 
 export default {
   getProviders,
-  setEnabled,
+  updateProvider,
 };
