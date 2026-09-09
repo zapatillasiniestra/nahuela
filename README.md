@@ -124,25 +124,3 @@ npm run build
 The project is structured so that unit and integration tests can run against the application layers with minimal coupling to infrastructure.
 
 ---
-
-## Repository Structure
-
-```text
-src/
-├── controllers/
-├── services/
-├── repositories/
-├── providers/
-│   ├── identity/
-│   ├── document/
-│   ├── compliance/
-│   └── audit/
-├── middleware/
-├── validators/
-├── routes/
-├── db/
-├── jobs/
-├── types/
-├── utils/
-└── tests/
-```
