@@ -121,6 +121,4 @@ Build with:
 npm run build
 ```
 
-The project is structured so that unit and integration tests can run against the application layers with minimal coupling to infrastructure.
-
 ---
