@@ -104,30 +104,41 @@ afterEach(async () => {
     );
   });
 
-  test("rejects unsupported provider", async () => {
-    await pool.query(`
-      UPDATE provider_registry
-      SET enabled = false
-      WHERE type = 'identity'
-    `);
+test("rejects unsupported provider", async () => {
+  await pool.query(`
+    UPDATE provider_registry
+    SET enabled = false
+    WHERE type = 'identity'
+  `);
 
-    await pool.query(`
-      INSERT INTO provider_registry
-        (type, name, enabled)
-      VALUES
-        ('identity', 'invalid', true)
-    `);
+  await pool.query(`
+    DELETE FROM provider_registry
+    WHERE type = 'identity'
+      AND name = 'invalid'
+  `);
 
+  await pool.query(`
+    INSERT INTO provider_registry
+      (type, name, enabled)
+    VALUES
+      ('identity', 'invalid', true)
+  `);
+
+  try {
     await expect(
       createIdentityProvider()
     ).rejects.toThrow(
       "Unsupported identity provider: invalid"
     );
-
+  } finally {
     await pool.query(`
       DELETE FROM provider_registry
       WHERE type = 'identity'
         AND name = 'invalid'
     `);
+  }
+});
+  afterAll(async () => {
+    await pool.end();
   });
 });

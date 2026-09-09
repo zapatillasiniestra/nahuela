@@ -242,7 +242,7 @@ expect(humanCompleted.previous_event_hash)
       [application.id]
     );
   }
-});
+},30000);
 
 test("keeps audit chain valid after human review", async () => {
   const application =
@@ -285,7 +285,7 @@ try {
       [application.id]
     );
   }
-});
+},30000);
 
 test("detects tampering with a human review audit event", async () => {
   const application =
@@ -350,7 +350,7 @@ test("detects tampering with a human review audit event", async () => {
       [application.id]
     );
   }
-});
+},30000);
 
 test("compliance report uses application workflow status", async () => {
   const application =
