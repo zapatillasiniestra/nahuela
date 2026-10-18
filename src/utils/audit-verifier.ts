@@ -57,7 +57,7 @@ export function verifyAuditChain(
     }
 
     if (i === 0) {
-      if (event.previousEventHash !== null) {
+      if ((event.previousEventHash ?? null) !== null) {
         return false;
       }
       continue;

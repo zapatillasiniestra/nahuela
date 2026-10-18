@@ -310,4 +310,23 @@ describe("verifyAuditEvent", () => {
       ])
     ).toBe(false);
   });
+
+  test("accepts a genesis event with an omitted previous hash", async () => {
+    const event = await createTestEvent();
+
+    const eventWithoutPreviousHash: AuditEventToVerify = {
+      ...event,
+    };
+
+    delete eventWithoutPreviousHash.previousEventHash;
+
+    expect(
+      verifyAuditEvent(eventWithoutPreviousHash)
+    ).toBe(true);
+
+    expect(
+      verifyAuditChain([eventWithoutPreviousHash])
+    ).toBe(true);
+  });
+
 });

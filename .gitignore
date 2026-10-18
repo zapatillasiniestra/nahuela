@@ -6,3 +6,7 @@ node_modules/
 backup.git
 dist/
 *.log
+
+# Local tool configuration and database dumps
+.neon
+fintech_backup.sql
